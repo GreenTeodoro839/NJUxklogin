@@ -123,7 +123,7 @@ def perform_login(
 
             if str(resp_code) == "1" and str(resp_data.get("number")) == str(username):
                 token = resp_data.get("token")
-                print(f"✅ 登录成功! Token: {token}")
+                print(f"✅ 登录成功!")
                 return session.cookies.get_dict(), token
             else:
                 msg = login_json.get("msg", "未知错误")
