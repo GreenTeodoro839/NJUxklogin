@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "NJUxklogin"
+version = "1.0.0"
+description = "南京大学选课系统登录库"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "GreenTeodoro839" }]
+requires-python = ">=3.8"
+dependencies = [
+    "requests",
+    "pillow",
+    "numpy",
+    "onnxruntime",
+    "pysocks",
+]
+
+[tool.setuptools.packages.find]
+include = ["njuxklogin*"]
+
+[tool.setuptools.package-data]
+njuxklogin = ["models/*.onnx"]
