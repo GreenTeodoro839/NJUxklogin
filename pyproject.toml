@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "NJUxklogin"
-version = "1.0.0"
+version = "1.0.1"
 description = "南京大学选课系统登录库"
 readme = "README.md"
 license = { file = "LICENSE" }
