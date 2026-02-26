@@ -16,7 +16,6 @@ pip install NJUxklogin
 | `pillow` | 图像处理 |
 | `numpy` | 矩阵计算 |
 | `onnxruntime` | 验证码模型推理 |
-| `pycryptodome` | DES 密码加密 |
 | `pysocks` | SOCKS5 代理支持 |
 
 ## 快速开始
