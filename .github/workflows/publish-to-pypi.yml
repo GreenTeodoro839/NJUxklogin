@@ -1,0 +1,101 @@
+name: Publish to PyPI on Version Bump
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  check-version-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout current commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Get current version from pyproject.toml
+        id: current
+        run: |
+          VERSION=$(python3 << 'PYEOF'
+          import re
+          with open("pyproject.toml") as f:
+              content = f.read()
+          m = re.search(r'version\s*=\s*["\x27](.*?)["\x27]', content)
+          print(m.group(1) if m else "")
+          PYEOF
+          )
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Current version: $VERSION"
+
+      - name: Get previous version from pyproject.toml
+        id: previous
+        run: |
+          VERSION=$(git show HEAD~1:pyproject.toml 2>/dev/null | python3 << 'PYEOF'
+          import sys, re
+          content = sys.stdin.read()
+          m = re.search(r'version\s*=\s*["\x27](.*?)["\x27]', content)
+          print(m.group(1) if m else "")
+          PYEOF
+          ) || VERSION=""
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Previous version: $VERSION"
+
+      - name: Compare versions
+        id: compare
+        run: |
+          CURRENT="${{ steps.current.outputs.version }}"
+          PREVIOUS="${{ steps.previous.outputs.version }}"
+
+          if [ -z "$CURRENT" ]; then
+            echo "Could not read current version. Skipping."
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -z "$PREVIOUS" ]; then
+            echo "No previous version found. Publishing."
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ "$CURRENT" = "$PREVIOUS" ]; then
+            echo "Version unchanged ($CURRENT). Skipping publish."
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            HIGHER=$(python3 << PYEOF
+          from packaging.version import Version
+          cur = Version("$CURRENT")
+          prev = Version("$PREVIOUS")
+          print("true" if cur > prev else "false")
+          PYEOF
+          )
+            if [ "$HIGHER" = "true" ]; then
+              echo "Version bumped: $PREVIOUS -> $CURRENT. Will publish."
+              echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "Version did not increase ($PREVIOUS -> $CURRENT). Skipping."
+              echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Set up Python
+        if: steps.compare.outputs.should_publish == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install build tools
+        if: steps.compare.outputs.should_publish == 'true'
+        run: pip install build
+
+      - name: Build package
+        if: steps.compare.outputs.should_publish == 'true'
+        run: python -m build
+
+      - name: Publish to PyPI
+        if: steps.compare.outputs.should_publish == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
